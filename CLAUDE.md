@@ -12,9 +12,13 @@ Resume Tailor — a personal Django app to track job applications across boards,
 same job seen on different boards (via a normalized signature), and AI-tailor resumes to
 each posting.
 
-**Stack:** Django + HTMX + Tailwind (server-rendered, all-in-one) · PostgreSQL on Cloud
-SQL · Cloud Run · Playwright (headless Chromium) for scraping · OpenAI API
-(`gpt4.1`) for tailoring.
+**Stack:** Django + HTMX + Tailwind (server-rendered, all-in-one) · PostgreSQL on Neon
+(serverless, via `DATABASE_URL`) · Cloud Run · Playwright (headless Chromium) for scraping
+**and** resume-PDF rendering (`page.pdf()`) · OpenAI API (`gpt-4.1`) for tailoring.
+
+**Core workflow:** paste a job URL → scrape → AI-tailor the resume → save to DB → generate
+a PDF on demand from a single v1 template. UI is three tabs: Dashboard, Applied/History,
+Tailored.
 
 ## UI preferences
 
