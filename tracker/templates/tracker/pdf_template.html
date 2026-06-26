@@ -1,0 +1,82 @@
+{% comment %}
+v1 resume layout for PDF rendering — SCAFFOLD SKELETON.
+
+To be ported from printable_resume/index.html: inline the full printable_resume/resume.css
+into the <style> block below, bundle the Inter @font-face, and inline the contact SVG icons
+(including github.svg) so the rendered HTML is self-contained for Chromium page.pdf().
+See dev/25_06_minimal_req.md (PDF template).
+
+Inputs:
+  profile  — fixed: name, subtitle, location, *_url, email, gdpr_text (from profiles.Profile)
+  tailored — the validated tailored JSON: about, experiences[], skills[], projects[]
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ profile.name }} — Resume</title>
+    <style>
+      /* TODO: inline printable_resume/resume.css here (+ Inter @font-face). */
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1 class="resume-name">{{ profile.name }}</h1>
+        <p class="resume-subtitle">{{ profile.subtitle }}</p>
+        {# TODO: contact row (location, website, github, email, linkedin) with inline icons #}
+      </header>
+
+      <section class="section">
+        <h2 class="section-title">About</h2>
+        <p class="about-text">{{ tailored.about }}</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Professional Experience</h2>
+        <div class="exp-list">
+          {% for exp in tailored.experiences %}
+            <div class="exp-item">
+              <div class="exp-header">
+                <h3 class="exp-company">{{ exp.company }}</h3>
+                <span class="exp-period">{{ exp.period }}</span>
+              </div>
+              <p class="exp-desc">{{ exp.desc }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Skills &amp; Technologies</h2>
+        <div class="skill-list">
+          {% for cat in tailored.skills %}
+            <div class="skill-cat">
+              <h4 class="cat-title">{{ cat.category }}</h4>
+              <div class="tags">
+                {% for item in cat.items %}<span class="chip">{{ item }}</span>{% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Key Projects</h2>
+        <div class="proj-list">
+          {% for proj in tailored.projects %}
+            <div class="proj-item">
+              <div class="proj-header">
+                <h3 class="proj-name">{{ proj.name }}</h3>
+                {% for t in proj.tech %}<span class="chip">{{ t }}</span>{% endfor %}
+              </div>
+              <p class="proj-desc">{{ proj.desc }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <footer class="gdpr">{{ profile.gdpr_text }}</footer>
+    </div>
+  </body>
+</html>

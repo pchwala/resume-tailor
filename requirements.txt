@@ -1,0 +1,14 @@
+# Resume Tailor — runtime + dev dependencies
+# See dev/25_06_minimal_req.md for the architecture these support.
+
+Django>=5.0,<6.0
+psycopg[binary]>=3.1          # PostgreSQL (Neon) driver
+django-environ>=0.11          # env-driven settings + DATABASE_URL parsing
+playwright>=1.44              # headless Chromium: scraping + PDF rendering
+openai>=1.30                  # AI tailoring (gpt-4.1)
+pydantic>=2.7                 # validate the tailored-resume JSON contract
+gunicorn>=22.0                # WSGI server (Cloud Run)
+whitenoise>=6.6               # static file serving
+
+# dev / test
+pytest-django>=4.8
