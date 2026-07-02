@@ -63,5 +63,5 @@ straight from `Profile`. Design lives in the template, content in the data — n
 - Docker: `docker build -t resume-tailor .` then run with env vars / `--env-file .env`.
 
 Settings are env-driven (`django-environ`): `SECRET_KEY`, `DEBUG`, `DATABASE_URL` (Neon
-pooled; falls back to local SQLite when unset), `OPENAI_API_KEY`, `ALLOWED_HOSTS`,
-`CSRF_TRUSTED_ORIGINS`.
+pooled; **required, no SQLite fallback** — fails fast if unset), `OPENAI_API_KEY`,
+`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`.

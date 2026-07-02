@@ -30,7 +30,10 @@ app from an empty directory.
   with the built-in **Django admin** as a power-user backend.
 - **PostgreSQL on Neon** (managed, serverless), reached over TLS via a plain
   `DATABASE_URL` (Neon pooled endpoint). App on **Cloud Run** (stateless — SQLite would
-  not persist there).
+  not persist there). **Decision: no SQLite fallback anywhere, including local dev.**
+  `DATABASE_URL` is required; `config/settings.py` fails fast
+  (`environ.ImproperlyConfigured`) if it's unset, rather than silently defaulting to a
+  local `db.sqlite3` file. Do not reintroduce a SQLite default.
 - **Playwright (headless Chromium)** for scraping every offer page (handles JS-rendered
   boards like LinkedIn/Greenhouse) **and** for rendering the resume PDF (`page.pdf()`).
 - **Deterministic dedup**: a normalized hash of company + title (+ location).

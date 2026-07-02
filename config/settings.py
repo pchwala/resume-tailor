@@ -62,12 +62,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Neon over a plain DATABASE_URL; SQLite fallback for local scaffold use.
+# Neon over a plain DATABASE_URL. Required — no SQLite fallback; fails fast
+# (environ.ImproperlyConfigured) if unset, in any environment.
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
-    ),
+    "default": env.db("DATABASE_URL"),
 }
 
 AUTH_PASSWORD_VALIDATORS = [
