@@ -1,8 +1,9 @@
 """Django settings, env-driven via django-environ.
 
-See dev/25_06_minimal_req.md (Config & deployment). Secrets and the Neon DATABASE_URL
-come from the environment; a local SQLite fallback keeps the scaffold runnable without
-provisioning Postgres.
+See dev/25_06_minimal_req.md (Config & deployment). Secrets and the Neon DATABASE_URL come
+from the environment; DATABASE_URL is required (no SQLite fallback — fails fast if unset).
+Defaults are Cloud-Run-friendly (`.run.app` host + `https://*.run.app` CSRF origin) so the
+deployed service works out of the box; env vars still override.
 """
 from pathlib import Path
 
@@ -15,8 +16,12 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY", default="dev-insecure-change-me")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", ".run.app"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://*.run.app"])
+
+# Cloud Run terminates TLS and forwards over HTTP with X-Forwarded-Proto: https. Without this,
+# request.is_secure() is False and the CSRF Origin scheme check rejects the POST forms.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -67,6 +72,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": env.db("DATABASE_URL"),
 }
+# Neon's pooled endpoint runs PgBouncer in transaction mode. psycopg3 prepared statements and
+# server-side cursors break under it (they work for one-shot `migrate` but throw under the
+# pooled gunicorn runtime), so disable both. Harmless on a direct (non-pooled) connection.
+DATABASES["default"].setdefault("OPTIONS", {})["prepare_threshold"] = None
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

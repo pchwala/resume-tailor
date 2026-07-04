@@ -78,4 +78,8 @@ straight from `Profile`. Design lives in the template, content in the data — n
 
 Settings are env-driven (`django-environ`): `SECRET_KEY`, `DEBUG`, `DATABASE_URL` (Neon
 pooled; **required, no SQLite fallback** — fails fast if unset), `OPENAI_API_KEY`,
-`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`.
+`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`. Cloud Run: `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`
+default to `.run.app` / `https://*.run.app` and `SECURE_PROXY_SSL_HEADER` is set (TLS is
+terminated at the proxy). The Neon **pooled** endpoint (PgBouncer transaction mode) requires
+`OPTIONS={"prepare_threshold": None}` + `DISABLE_SERVER_SIDE_CURSORS=True` (set in
+`settings.py`) — `migrate` works without them but pooled runtime queries 500.
