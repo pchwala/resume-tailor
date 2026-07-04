@@ -178,8 +178,10 @@ Inputs:
         }
         .divider { border-top-color: rgba(0, 0, 0, 0.12); }
         .chip { border-color: rgba(0, 0, 0, 0.3); }
-        .section { page-break-inside: avoid; }
-        .exp-list, .proj-list { page-break-inside: avoid; }
+        /* Keep each entry intact, but let sections flow across the page boundary — avoiding
+           a break on whole sections leaves large blank gaps and inflates the page count. */
+        .exp-item, .proj-item, .skill-cat { page-break-inside: avoid; }
+        .section-title { break-after: avoid; }
       }
     </style>
   </head>

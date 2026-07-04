@@ -21,8 +21,10 @@ _DEFAULT_TEMPLATE = "tracker/pdf_template.html"
 
 # Auto-shrink-to-fit: scale the rendered page down just enough to keep it within _MAX_PAGES.
 _A4_PAGE_PX = 1122.5     # A4 height (297mm) in CSS px at 96dpi; margins are 0 so this is the full sheet
+_A4_WIDTH_PX = 794       # A4 width (210mm) in CSS px at 96dpi — measure at this width so scrollHeight
+                         # matches the print layout (in print `.page` fills the sheet, not 900px)
 _MAX_PAGES = 2
-_SAFETY = 0.97           # absorb whitespace left by `page-break-inside: avoid`
+_SAFETY = 0.92           # reserve headroom for the item that can't split across the page boundary
 _MIN_SCALE = 0.75        # legibility floor (~12px); below this we allow a spill rather than shrink further
 
 
@@ -82,8 +84,10 @@ def _html_to_pdf(html: str) -> bytes:
         try:
             page = browser.new_page()
             page.set_content(html, wait_until="networkidle")
-            # Measure under print media (the template's print padding differs) and shrink to fit.
+            # Measure under print media at A4 width (the print layout differs from screen), then
+            # scale down so the content fits within _MAX_PAGES.
             page.emulate_media(media="print")
+            page.set_viewport_size({"width": _A4_WIDTH_PX, "height": int(_A4_PAGE_PX)})
             scale = _scale_for_height(page.evaluate("document.documentElement.scrollHeight"))
             return page.pdf(
                 format="A4",

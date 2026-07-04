@@ -139,3 +139,30 @@ def test_render_master_pdf_produces_pdf():
     assert isinstance(pdf, (bytes, bytearray))
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 2000  # a real, non-trivial document
+
+
+def _pdf_page_count(pdf: bytes) -> int:
+    # Chromium emits one `/Type /Page` per page and a single `/Type /Pages` tree root.
+    return pdf.count(b"/Type /Page") - pdf.count(b"/Type /Pages")
+
+
+@pytest.mark.django_db
+@pytest.mark.skipif(not _chromium_available(), reason="Chromium not installed")
+def test_long_resume_auto_shrinks_to_two_pages():
+    """A resume whose content exceeds two pages at full size is scaled to fit within two.
+
+    Guards both halves of the fix: item-level page breaks (whole-section `avoid` inflated the
+    count) and the height-driven `scale` passed to `page.pdf()`.
+    """
+    from profiles.models import Experience, Profile, SkillCategory, Skill
+
+    profile = Profile.objects.create(name="Long Resume", subtitle="Dev",
+                                     about="About paragraph. " * 40, gdpr_text="Consent.")
+    for i in range(13):  # far more than fits at full size → must shrink
+        Experience.objects.create(profile=profile, company=f"Company {i}",
+                                  period="2020 — 2021", description="Did many things. " * 10, order=i)
+    cat = SkillCategory.objects.create(profile=profile, name="Frameworks")
+    for s in ("FastAPI", "React", "Django"):
+        Skill.objects.create(category=cat, name=s)
+
+    assert _pdf_page_count(render_master_pdf(profile)) <= 2
