@@ -4,7 +4,18 @@ from pathlib import Path
 import pytest
 from django.template.loader import render_to_string
 
-from tailoring.pdf import _load_fonts, master_content, render_master_pdf
+from tailoring.pdf import (
+    _A4_PAGE_PX,
+    _MAX_PAGES,
+    _MIN_SCALE,
+    _SAFETY,
+    _load_fonts,
+    _scale_for_height,
+    master_content,
+    render_master_pdf,
+)
+
+_BUDGET = _A4_PAGE_PX * _MAX_PAGES * _SAFETY  # content height that fills exactly 2 pages
 
 
 def _build_profile():
@@ -89,6 +100,24 @@ def test_pdf_template_renders_tailored_content():
     assert "TAILORED summary for this role." in html
     assert "TAILORED experience desc." in html
     assert "TAILORED project." in html
+
+
+def test_scale_for_height_no_shrink_when_content_fits():
+    # Content within the 2-page budget renders at full size (never upscaled).
+    assert _scale_for_height(_A4_PAGE_PX) == 1.0
+    assert _scale_for_height(_BUDGET) == 1.0  # fills the budget exactly
+    assert _scale_for_height(0) == 1.0  # degenerate measurement
+
+
+def test_scale_for_height_shrinks_moderately_long_content():
+    # Over the budget → scale down a bit, still above the floor.
+    scale = _scale_for_height(_BUDGET * 1.15)
+    assert _MIN_SCALE < scale < 1.0
+
+
+def test_scale_for_height_floors_at_min_for_very_long_content():
+    # Content far too long even shrunk → clamp at the legibility floor (allow spill).
+    assert _scale_for_height(_A4_PAGE_PX * 10) == _MIN_SCALE
 
 
 def _chromium_available() -> bool:

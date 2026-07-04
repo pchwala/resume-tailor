@@ -8,7 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
   </head>
-  <body class="bg-gray-50 text-gray-900">
+  <body class="bg-gray-50 text-gray-900"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <nav class="border-b bg-white">
       <div class="max-w-4xl mx-auto px-4 py-3 flex gap-6 text-sm">
         <a href="{% url 'dashboard' %}" class="hover:underline">Dashboard</a>

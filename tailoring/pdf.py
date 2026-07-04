@@ -19,6 +19,24 @@ from django.template.loader import render_to_string
 _FONT_DIR = Path(__file__).resolve().parent.parent / "tracker" / "static" / "resume" / "fonts"
 _DEFAULT_TEMPLATE = "tracker/pdf_template.html"
 
+# Auto-shrink-to-fit: scale the rendered page down just enough to keep it within _MAX_PAGES.
+_A4_PAGE_PX = 1122.5     # A4 height (297mm) in CSS px at 96dpi; margins are 0 so this is the full sheet
+_MAX_PAGES = 2
+_SAFETY = 0.97           # absorb whitespace left by `page-break-inside: avoid`
+_MIN_SCALE = 0.75        # legibility floor (~12px); below this we allow a spill rather than shrink further
+
+
+def _scale_for_height(measured_height: float) -> float:
+    """Scale factor to fit `measured_height` (CSS px) into _MAX_PAGES, clamped to [_MIN_SCALE, 1.0].
+
+    Never upscales (short resumes render at 1.0); floors at _MIN_SCALE so very long resumes
+    spill to another page rather than become unreadable.
+    """
+    if measured_height <= 0:
+        return 1.0
+    budget = _A4_PAGE_PX * _MAX_PAGES * _SAFETY
+    return max(_MIN_SCALE, min(1.0, budget / measured_height))
+
 
 def master_content(profile) -> dict:
     """Project the master Profile into the tailored-resume JSON shape (untailored)."""
@@ -64,10 +82,14 @@ def _html_to_pdf(html: str) -> bytes:
         try:
             page = browser.new_page()
             page.set_content(html, wait_until="networkidle")
+            # Measure under print media (the template's print padding differs) and shrink to fit.
+            page.emulate_media(media="print")
+            scale = _scale_for_height(page.evaluate("document.documentElement.scrollHeight"))
             return page.pdf(
                 format="A4",
                 print_background=True,
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
+                scale=scale,
             )
         finally:
             browser.close()
