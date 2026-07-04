@@ -2,7 +2,29 @@
 {% block title %}Dashboard — Resume Tailor{% endblock %}
 {% block content %}
   <h1 class="text-xl font-semibold mb-4">Dashboard</h1>
-  {# TODO: paste-URL TAILOR form (HTMX POST to {% url 'tailor' %}); recent tailorings;
-     "seen this job before" notices. See dev/25_06_minimal_req.md (UI). #}
-  <p class="text-gray-500">Scaffold placeholder — TAILOR form not yet implemented.</p>
+
+  <form hx-post="{% url 'tailor' %}"
+        hx-target="#tailor-result"
+        hx-swap="innerHTML"
+        hx-indicator="#spin"
+        hx-disabled-elt="find button"
+        class="flex gap-2 items-start">
+    {% csrf_token %}
+    <input type="url" name="url" required placeholder="Paste a job-posting URL"
+           class="flex-1 border rounded px-3 py-2 text-sm" />
+    <button type="submit"
+            class="border rounded px-4 py-2 text-sm bg-white hover:bg-gray-100">Tailor</button>
+  </form>
+  <p id="spin" class="htmx-indicator text-sm text-gray-500 mt-2">Scraping and tailoring…</p>
+
+  <div id="tailor-result" class="mt-4"></div>
+
+  <h2 class="text-sm font-semibold text-gray-600 mt-8 mb-2">Recent tailorings</h2>
+  <div class="space-y-2">
+    {% for tailored in recent %}
+      {% include "tracker/_tailored_row.html" with tailored=tailored %}
+    {% empty %}
+      <p class="text-gray-500 text-sm">No tailored resumes yet.</p>
+    {% endfor %}
+  </div>
 {% endblock %}

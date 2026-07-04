@@ -2,7 +2,11 @@
 {% block title %}Tailored — Resume Tailor{% endblock %}
 {% block content %}
   <h1 class="text-xl font-semibold mb-4">Tailored</h1>
-  {# TODO: list TailoredResume rows with a "Generate PDF" download per row
-     ({% url 'pdf_download' pk %}). #}
-  <p class="text-gray-500">Scaffold placeholder — tailored list not yet implemented.</p>
+  <div class="space-y-2">
+    {% for tailored in tailored_resumes %}
+      {% include "tracker/_tailored_row.html" with tailored=tailored %}
+    {% empty %}
+      <p class="text-gray-500 text-sm">No tailored resumes yet — tailor one from the Dashboard.</p>
+    {% endfor %}
+  </div>
 {% endblock %}

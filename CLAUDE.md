@@ -2,13 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Status: **partially implemented.** Done: models, admin, env-driven settings, base
-> templates, deployment files, `signatures.py`, `seed_resume`, `scraping.py` (Playwright +
-> JSON-LD/meta extraction), and PDF rendering (`tailoring/pdf.py` + the self-contained
-> `pdf_template.html` with Inter bundled). Still stubbed (raise `NotImplementedError`): AI
-> tailoring (`tailoring/ai.py`) and the TAILOR flow + 3-tab UI (`tracker/views.py`'s
-> `tailor` view and the dashboard/applied/tailored templates). The approved plan is
-> `dev/25_06_minimal_req.md`; the reference resume design is `printable_resume/`.
+> Status: **v1 implemented — no stubs remain.** Done: models, admin, env-driven settings,
+> templates, deployment files, `signatures.py`, `scraping.py` (Playwright + JSON-LD/meta),
+> `seed_resume`, PDF rendering (`tailoring/pdf.py` + self-contained `pdf_template.html`),
+> **AI tailoring** (`tailoring/ai.py`), and the **TAILOR flow + 3-tab UI** (`tracker/views.py`
+> + templates). The approved plan is `dev/25_06_minimal_req.md`; the reference resume design
+> is `printable_resume/`. Deferred (plan follow-ups): background scrape queue, periodic
+> re-scrape / "never closes" detection, inline Applied-tab status/notes editing, multiple
+> templates, swapping the Tailwind Play CDN for a built asset.
 
 ## Project
 
@@ -44,12 +45,14 @@ Django project `config/`; three apps:
   management command seeds these from `printable_resume/index.html`.
 - **`tracker/`** — `CanonicalJob` (dedup group), `JobPosting`, `Application`; plus
   `signatures.py` (dedup hash) and `scraping.py` (Playwright fetch + JSON-LD/meta
-  extraction) — both implemented. Owns the 3-tab UI views (`tailor` still a stub) and
-  `tracker/templates/tracker/pdf_template.html` (the self-contained PDF layout).
+  extraction). Owns the 3-tab UI + actions in `views.py`: `tailor` (scrape → dedup →
+  `ai.tailor` → save `TailoredResume`, all inline/blocking), `mark_applied`, `pdf_download`,
+  and `tracker/templates/tracker/pdf_template.html` (the self-contained PDF layout).
 - **`tailoring/`** — `ResumeTemplate`, `TailoredResume` (`content` is JSON); `ai.py`
-  (gpt-4.1 → validated tailored JSON + master-subset guard, **stub**) and `pdf.py`
-  (Chromium `page.pdf()`; `master_content()` projects the master `Profile` into the
-  tailored JSON shape and is the AI's future fallback) — `pdf.py` implemented.
+  (`tailor()` → gpt-4.1 via OpenAI **Structured Outputs** + pydantic → master-subset guard;
+  guard violations fall back to `master_content()`, hard errors raise `TailoringError`) and
+  `pdf.py` (Chromium `page.pdf()`; `master_content()` projects the master `Profile` into the
+  tailored JSON shape and is the subset-guard fallback).
 
 Tailoring contract: the AI returns JSON `{about, experiences[], skills[], projects[]}`
 that the PDF template loops over; fixed facts (contact, company/period, project names) come
@@ -67,7 +70,10 @@ straight from `Profile`. Design lives in the template, content in the data — n
   first model review).
 - Test: `pytest`. Tests run against the **Neon** DB, so `pytest.ini` sets `--reuse-db` (the
   remote test DB is expensive to recreate and can deadlock on a lingering session). After a
-  model/migration change, run `pytest --create-db` once to rebuild it.
+  model/migration change, run `pytest --create-db` once to rebuild it. Tests never make live
+  OpenAI/Playwright calls — monkeypatch the seams: `tailoring.ai._complete` (the OpenAI call),
+  and `tracker.views.scrape` / `tracker.views.tailor_resume` (imported at module level so
+  patches take effect).
 - Docker: `docker build -t resume-tailor .` then run with env vars / `--env-file .env`.
 
 Settings are env-driven (`django-environ`): `SECRET_KEY`, `DEBUG`, `DATABASE_URL` (Neon

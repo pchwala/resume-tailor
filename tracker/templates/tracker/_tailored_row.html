@@ -1,0 +1,23 @@
+{% with job=tailored.posting.canonical_job %}
+<div id="tailored-{{ tailored.pk }}"
+     class="flex items-center justify-between gap-4 border rounded bg-white px-4 py-3">
+  <div class="min-w-0">
+    <p class="font-medium truncate">{{ job.title|default:"(untitled)" }}
+      <span class="text-gray-500">@ {{ job.company|default:"—" }}</span></p>
+    <p class="text-xs text-gray-500">Tailored {{ tailored.created_at|date:"Y-m-d H:i" }}</p>
+  </div>
+  <div class="flex items-center gap-3 shrink-0 text-sm">
+    <a href="{% url 'pdf_download' tailored.pk %}"
+       class="underline hover:no-underline">Generate PDF</a>
+    {% if tailored.is_applied %}
+      <span class="text-gray-600">Applied ✓</span>
+    {% else %}
+      <button type="button"
+              hx-post="{% url 'mark_applied' tailored.pk %}"
+              hx-target="#tailored-{{ tailored.pk }}"
+              hx-swap="outerHTML"
+              class="border rounded px-2 py-1 hover:bg-gray-100">Mark as applied</button>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}

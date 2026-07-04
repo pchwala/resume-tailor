@@ -1,0 +1,19 @@
+{% if error %}
+  <div class="border border-red-300 bg-red-50 text-red-800 rounded px-4 py-3 text-sm">
+    {{ error }}
+  </div>
+{% else %}
+  {% with job=tailored.posting.canonical_job %}
+  <div class="space-y-3">
+    <p class="text-sm text-gray-700">Tailored resume created for
+      <span class="font-medium">{{ job.title }} @ {{ job.company }}</span>.</p>
+    {% if seen_before %}
+      <div class="border border-amber-300 bg-amber-50 text-amber-800 rounded px-4 py-2 text-sm">
+        You've seen this job before — {{ posting_count }} posting{{ posting_count|pluralize }}
+        now grouped under it.
+      </div>
+    {% endif %}
+    {% include "tracker/_tailored_row.html" with tailored=tailored %}
+  </div>
+  {% endwith %}
+{% endif %}
