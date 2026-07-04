@@ -1,37 +1,250 @@
+{% load resume_extras %}<!DOCTYPE html>
 {% comment %}
-v1 resume layout for PDF rendering — SCAFFOLD SKELETON.
-
-To be ported from printable_resume/index.html: inline the full printable_resume/resume.css
-into the <style> block below, bundle the Inter @font-face, and inline the contact SVG icons
-(including github.svg) so the rendered HTML is self-contained for Chromium page.pdf().
-See dev/25_06_minimal_req.md (PDF template).
+Self-contained v1 resume layout for Chromium page.pdf(). Ported from
+printable_resume/index.html + resume.css: all CSS inlined, Inter bundled as base64
+@font-face (via the `fonts` context var), contact icons inlined as SVG. No external refs.
 
 Inputs:
-  profile  — fixed: name, subtitle, location, *_url, email, gdpr_text (from profiles.Profile)
-  tailored — the validated tailored JSON: about, experiences[], skills[], projects[]
+  profile  — fixed: name, subtitle, location, *_url, email, gdpr_text (profiles.Profile)
+  tailored — validated tailored JSON: about, experiences[], skills[], projects[]
+  fonts    — {"latin": <b64>, "latin_ext": <b64>} woff2 (tailoring.pdf._load_fonts)
 {% endcomment %}
-<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>{{ profile.name }} — Resume</title>
     <style>
-      /* TODO: inline printable_resume/resume.css here (+ Inter @font-face). */
+      /* === Inter (bundled, variable weight) === */
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url(data:font/woff2;base64,{{ fonts.latin }}) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+          U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+          U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url(data:font/woff2;base64,{{ fonts.latin_ext }}) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+          U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+          U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      /* === Reset === */
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      /* === Base === */
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #1a1a2e;
+        background-color: #f5f7fa;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* === Page === */
+      .page {
+        max-width: 900px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 64px 48px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        border-radius: 6px;
+      }
+
+      /* === Header === */
+      .resume-name {
+        font-size: 2.125rem;
+        font-weight: 700;
+        letter-spacing: -1px;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+      }
+      .resume-subtitle {
+        font-size: 1.25rem;
+        font-weight: 400;
+        color: #5f6368;
+        margin-bottom: 24px;
+      }
+      .contact-row { display: flex; flex-wrap: wrap; gap: 16px; }
+      .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        color: #5f6368;
+      }
+      .contact-item .icon { width: 16px; height: 16px; fill: #5f6368; flex-shrink: 0; }
+      .contact-item a { color: #1976d2; text-decoration: none; }
+      .contact-item a:hover { text-decoration: underline; }
+
+      /* === Divider === */
+      .divider {
+        border: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        margin: 40px 0;
+      }
+
+      /* === Sections === */
+      .section { margin-bottom: 40px; }
+      .section:last-child { margin-bottom: 0; }
+      .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 24px;
+      }
+
+      /* === About === */
+      .about-text { font-size: 1rem; color: #5f6368; line-height: 1.8; }
+
+      /* === Experience === */
+      .exp-list { display: flex; flex-direction: column; gap: 32px; }
+      .exp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .exp-company { font-size: 1rem; font-weight: 600; color: #1a1a2e; }
+      .exp-period { font-size: 0.875rem; color: #5f6368; }
+      .exp-desc { font-size: 0.875rem; color: #5f6368; line-height: 1.8; }
+
+      /* === Skills === */
+      .skill-list { display: flex; flex-direction: column; gap: 20px; }
+      .cat-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+      }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+      /* === Chips (outlined — matching MUI outlined chip) === */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 10px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #1a1a2e;
+        border: 1px solid rgba(0, 0, 0, 0.23);
+        border-radius: 16px;
+        background: transparent;
+        white-space: nowrap;
+      }
+
+      /* === Projects === */
+      .proj-list { display: flex; flex-direction: column; gap: 24px; }
+      .proj-header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .proj-name { font-size: 1rem; font-weight: 600; color: #1a1a2e; }
+      .proj-desc { font-size: 0.875rem; color: #5f6368; line-height: 1.7; }
+
+      /* === GDPR footer === */
+      .gdpr {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        font-size: 0.75rem;
+        font-style: italic;
+        color: #9aa0a6;
+        line-height: 1.6;
+      }
+
+      /* === Print === */
+      @media print {
+        body { background: white; }
+        .page {
+          max-width: none;
+          margin: 0;
+          padding: 48px 40px;
+          box-shadow: none;
+          border-radius: 0;
+        }
+        .divider { border-top-color: rgba(0, 0, 0, 0.12); }
+        .chip { border-color: rgba(0, 0, 0, 0.3); }
+        .section { page-break-inside: avoid; }
+        .exp-list, .proj-list { page-break-inside: avoid; }
+      }
     </style>
   </head>
   <body>
     <div class="page">
+      <!-- ── Header ─────────────────────────────────────────────────────── -->
       <header>
         <h1 class="resume-name">{{ profile.name }}</h1>
-        <p class="resume-subtitle">{{ profile.subtitle }}</p>
-        {# TODO: contact row (location, website, github, email, linkedin) with inline icons #}
+        {% if profile.subtitle %}<p class="resume-subtitle">{{ profile.subtitle }}</p>{% endif %}
+
+        <div class="contact-row">
+          {% if profile.location %}
+          <div class="contact-item">
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+            </svg>
+            <span>{{ profile.location }}</span>
+          </div>
+          {% endif %}
+          {% if profile.website_url %}
+          <div class="contact-item">
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/>
+            </svg>
+            <a href="{{ profile.website_url }}">{{ profile.website_url|display_url }}</a>
+          </div>
+          {% endif %}
+          {% if profile.github_url %}
+          <div class="contact-item">
+            <svg class="icon" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/>
+            </svg>
+            <a href="{{ profile.github_url }}">{{ profile.github_url|display_url }}</a>
+          </div>
+          {% endif %}
+          {% if profile.email %}
+          <div class="contact-item">
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+            <a href="mailto:{{ profile.email }}">{{ profile.email }}</a>
+          </div>
+          {% endif %}
+          {% if profile.linkedin_url %}
+          <div class="contact-item">
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+            </svg>
+            <a href="{{ profile.linkedin_url }}">{{ profile.linkedin_url|display_url }}</a>
+          </div>
+          {% endif %}
+        </div>
       </header>
 
+      <hr class="divider" />
+
+      <!-- ── About ───────────────────────────────────────────────────────── -->
       <section class="section">
         <h2 class="section-title">About</h2>
         <p class="about-text">{{ tailored.about }}</p>
       </section>
 
+      <hr class="divider" />
+
+      <!-- ── Professional Experience ────────────────────────────────────── -->
       <section class="section">
         <h2 class="section-title">Professional Experience</h2>
         <div class="exp-list">
@@ -47,6 +260,9 @@ Inputs:
         </div>
       </section>
 
+      <hr class="divider" />
+
+      <!-- ── Skills & Technologies ──────────────────────────────────────── -->
       <section class="section">
         <h2 class="section-title">Skills &amp; Technologies</h2>
         <div class="skill-list">
@@ -61,6 +277,9 @@ Inputs:
         </div>
       </section>
 
+      <hr class="divider" />
+
+      <!-- ── Key Projects ────────────────────────────────────────────────── -->
       <section class="section">
         <h2 class="section-title">Key Projects</h2>
         <div class="proj-list">
@@ -76,7 +295,8 @@ Inputs:
         </div>
       </section>
 
-      <footer class="gdpr">{{ profile.gdpr_text }}</footer>
+      <!-- ── GDPR ───────────────────────────────────────────────────────── -->
+      {% if profile.gdpr_text %}<footer class="gdpr">{{ profile.gdpr_text }}</footer>{% endif %}
     </div>
   </body>
 </html>
