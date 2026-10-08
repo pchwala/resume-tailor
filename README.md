@@ -63,7 +63,7 @@ Settings are read from the environment or `.env`; see `.env.example`.
 |---|---|---|
 | `DATABASE_URL` | yes | Neon **pooled** connection string with `sslmode=require` |
 | `OPENAI_API_KEY` | for tailoring | |
-| `SECRET_KEY` | in production | Falls back to an insecure dev value |
+| `SECRET_KEY` | unless `DEBUG=True` | Startup fails if unset with `DEBUG=False`; dev fallback only in DEBUG |
 | `DEBUG` | no | Defaults to `False` |
 | `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` | no | Default to localhost plus `.run.app` / `https://*.run.app` |
 

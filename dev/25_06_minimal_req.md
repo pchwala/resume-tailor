@@ -351,7 +351,9 @@ auto-scaling, and the views.
 5. **No default `ResumeTemplate` is seeded**, so `TailoredResume.template` is `NULL`;
    rendering falls back to `tracker/pdf_template.html`, so this works but is implicit.
 6. **Frontend assets come from CDNs** (Tailwind Play CDN, HTMX from unpkg).
-7. `SECRET_KEY` falls back to an insecure default if unset, even with `DEBUG=False`.
+7. ~~`SECRET_KEY` falls back to an insecure default if unset, even with `DEBUG=False`.~~
+   **Fixed 2026-10-08:** with `DEBUG=False` an unset `SECRET_KEY` raises
+   `ImproperlyConfigured`; the dev fallback applies only when `DEBUG=True`.
 8. `tests/test_placeholder.py` docstring is stale (lists tests that now exist).
 
 ### Not yet verified
@@ -366,8 +368,8 @@ were run. Do these first.
    through the Dashboard.
 2. ~~Fix gaps 1–3~~ (done 2026-10-08). Still to do: `docker build` and smoke-run the
    container (first attempt failed: host out of disk space).
-3. Swap the Tailwind Play CDN for a built asset and vendor HTMX into `static/`; require
-   `SECRET_KEY` when `DEBUG=False`.
+3. Swap the Tailwind Play CDN for a built asset and vendor HTMX into `static/`. (~~require
+   `SECRET_KEY` when `DEBUG=False`~~ done 2026-10-08.)
 4. Deploy to Cloud Run (secrets via Secret Manager / env).
 5. Then the original follow-ups below: background scrape queue → periodic re-scrape +
    posting status + "never closes" view (needs gap 4) → inline Applied-tab status/notes

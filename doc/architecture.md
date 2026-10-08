@@ -182,7 +182,7 @@ skills and projects, but must not change or invent any fact.
 | Variable | Default | Notes |
 |---|---|---|
 | `DATABASE_URL` | **required** | Neon pooled URL. Startup fails fast if it is unset; there is deliberately no SQLite fallback. |
-| `SECRET_KEY` | insecure dev value | Always set it in production. |
+| `SECRET_KEY` | **required** unless `DEBUG=True` | With `DEBUG=False` startup fails fast if it is unset; the insecure dev value is used only in DEBUG. |
 | `DEBUG` | `False` | |
 | `OPENAI_API_KEY` | `""` | Read by the OpenAI SDK from the environment. |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,.run.app` | |

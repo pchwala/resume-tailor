@@ -1,7 +1,8 @@
 """Django settings, env-driven via django-environ.
 
 See dev/25_06_minimal_req.md (Config & deployment). Secrets and the Neon DATABASE_URL come
-from the environment; DATABASE_URL is required (no SQLite fallback — fails fast if unset).
+from the environment; DATABASE_URL is required (no SQLite fallback — fails fast if unset), and
+so is SECRET_KEY unless DEBUG=True.
 Defaults are Cloud-Run-friendly (`.run.app` host + `https://*.run.app` CSRF origin) so the
 deployed service works out of the box; env vars still override.
 """
@@ -14,8 +15,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(BASE_DIR / ".env")
 
-SECRET_KEY = env("SECRET_KEY", default="dev-insecure-change-me")
 DEBUG = env("DEBUG")
+# Insecure fallback only in DEBUG; with DEBUG=False an unset SECRET_KEY fails fast
+# (environ.ImproperlyConfigured) instead of signing sessions with a public key.
+if DEBUG:
+    SECRET_KEY = env("SECRET_KEY", default="dev-insecure-change-me")
+else:
+    SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", ".run.app"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://*.run.app"])
 
