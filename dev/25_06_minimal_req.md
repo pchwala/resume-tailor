@@ -5,7 +5,10 @@
 > **JSON** tailoring contract, normalized master-data models (incl. a new `Project` model
 > and an expanded `Profile`), and `TailoredResume.content` as JSON. See
 > `printable_resume/index.html` + `resume.css` for the reference design.
-> Status: **approved, not yet implemented.**
+> Status: **v1 implemented** (last commit 2026-07-04; status reviewed 2026-10-08). See
+> [Implementation status](#implementation-status-2026-10-08) at the end for what shipped, how
+> it differs from this plan, known gaps, and next steps. The sections below are the original
+> plan, kept for reference.
 
 ## Context
 
@@ -286,3 +289,83 @@ template, and applications.
   + its filtered analytics view.
 - Optional AI/embedding semantic dedup layered on top of the hash signature.
 - Caching/storing rendered PDFs; multiple resume templates.
+
+---
+
+## Implementation status (2026-10-08)
+
+### Shipped (deliverables 1–8)
+
+All eight deliverables exist in the codebase; `pytest` has 34 tests across signatures,
+scraping (saved HTML fixtures), AI schema + subset guard (OpenAI mocked), PDF rendering /
+auto-scaling, and the views.
+
+| Area | Where |
+|---|---|
+| Models + migrations | `profiles/`, `tracker/`, `tailoring/` (`0001`/`0002` committed) |
+| Dedup signature | `tracker/signatures.py` |
+| Scraping | `tracker/scraping.py` — `fetch_html` (Playwright) + pure `extract` (JSON-LD → meta) |
+| AI tailoring | `tailoring/ai.py` — `tailor()`, `_complete()` seam, `_subset_guard()` |
+| PDF | `tailoring/pdf.py` + `tracker/templates/tracker/pdf_template.html` |
+| Seed data | `profiles/management/commands/seed_resume.py` |
+| PDF CLI | `tailoring/management/commands/render_resume_pdf.py` |
+| 3-tab UI + actions | `tracker/views.py`, `tracker/urls.py`, `tracker/templates/tracker/` |
+| Deploy | `Dockerfile`, `.env.example`, Cloud-Run defaults in `config/settings.py` |
+
+### Deviations from the plan
+
+- **Structured Outputs instead of `json_object`.** `_complete()` uses
+  `client.chat.completions.parse(response_format=TailoredResumeSchema)`, so the schema is
+  enforced server-side; refusals / unparseable output raise `TailoringError` (shown to the
+  user), and only subset-guard violations fall back to the master.
+- **Guard is slightly stricter:** project `tech` chips must also be a subset of that
+  project's master tech.
+- **Scraping runs inline** in the `tailor` view (blocking the worker), not off-thread; no
+  scrape management command. Per-board CSS selectors are deferred — extraction relies on
+  JSON-LD `JobPosting` with a `<meta>`/`<title>` fallback. `beautifulsoup4` was added.
+- **PDF auto-shrink:** the PDF is measured under print media and scaled down (floor 0.75)
+  to fit within 2 A4 pages; sections may break across pages.
+- **No `tailoring/views.py`** — all views live in `tracker/views.py`.
+- **`requirements.txt`** rather than `pyproject.toml`.
+- **Cloud Run hardening added:** `SECURE_PROXY_SSL_HEADER`, `.run.app` defaults for
+  `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`, and the Neon-pooler options
+  (`prepare_threshold=None`, `DISABLE_SERVER_SIDE_CURSORS`).
+
+### Known gaps (found in the 2026-10-08 review)
+
+1. **No authentication on the UI.** Every view in `tracker/views.py` is public. Deployed to
+   a public Cloud Run URL, anyone could trigger scrapes and OpenAI spend and read the data.
+   Must be fixed (e.g. `login_required` + the admin superuser, or Cloud Run IAM / IAP)
+   before deploying.
+2. **Playwright version drift.** The Dockerfile pins the `playwright/python:v1.44.0` image,
+   but `requirements.txt` has `playwright>=1.44`, so the image will likely install a newer
+   package that expects a different Chromium build than the one preinstalled. Pin
+   `playwright==` to the image's version (or bump both together).
+3. **`mark_applied` accepts GET** — it changes state but has no `require_POST`.
+4. **`CanonicalJob.last_seen` is not bumped on a re-sighting** (`get_or_create` doesn't
+   save the existing row), and **`JobPosting.status` is never set** (always `unknown`).
+   Both are needed before "never closes" detection can work.
+5. **No default `ResumeTemplate` is seeded**, so `TailoredResume.template` is `NULL`;
+   rendering falls back to `tracker/pdf_template.html`, so this works but is implicit.
+6. **Frontend assets come from CDNs** (Tailwind Play CDN, HTMX from unpkg).
+7. `SECRET_KEY` falls back to an insecure default if unset, even with `DEBUG=False`.
+8. `tests/test_placeholder.py` docstring is stale (lists tests that now exist).
+
+### Not yet verified
+
+There is no record that the end-to-end checks above (a real board URL through TAILOR,
+cross-board dedup on live pages, `docker build` + container smoke run, a Cloud Run deploy)
+were run. Do these first.
+
+### Next steps (priority order)
+
+1. Re-verify locally: `pytest`, `seed_resume`, `render_resume_pdf`, then one real URL
+   through the Dashboard.
+2. Fix gaps 1–3 (auth, Playwright pin, POST-only `mark_applied`); then `docker build` and
+   smoke-run the container.
+3. Swap the Tailwind Play CDN for a built asset and vendor HTMX into `static/`; require
+   `SECRET_KEY` when `DEBUG=False`.
+4. Deploy to Cloud Run (secrets via Secret Manager / env).
+5. Then the original follow-ups below: background scrape queue → periodic re-scrape +
+   posting status + "never closes" view (needs gap 4) → inline Applied-tab status/notes
+   editing → more templates / cached PDFs → optional semantic dedup.
