@@ -333,15 +333,18 @@ auto-scaling, and the views.
 
 ### Known gaps (found in the 2026-10-08 review)
 
-1. **No authentication on the UI.** Every view in `tracker/views.py` is public. Deployed to
+1. ~~**No authentication on the UI.**~~ **Fixed 2026-10-08:** `LoginRequiredMiddleware` +
+   `LOGIN_URL = "admin:login"` (log in as the superuser). Was: every view in `tracker/views.py` was public. Deployed to
    a public Cloud Run URL, anyone could trigger scrapes and OpenAI spend and read the data.
    Must be fixed (e.g. `login_required` + the admin superuser, or Cloud Run IAM / IAP)
    before deploying.
-2. **Playwright version drift.** The Dockerfile pins the `playwright/python:v1.44.0` image,
+2. ~~**Playwright version drift.**~~ **Fixed 2026-10-08:** `playwright==1.63.0` + base image
+   `v1.63.0-noble` (1.44 was not used: its `greenlet==3.0.3` can't install on Python 3.13+). Was: The Dockerfile pins the `playwright/python:v1.44.0` image,
    but `requirements.txt` has `playwright>=1.44`, so the image will likely install a newer
    package that expects a different Chromium build than the one preinstalled. Pin
    `playwright==` to the image's version (or bump both together).
-3. **`mark_applied` accepts GET** — it changes state but has no `require_POST`.
+3. ~~**`mark_applied` accepts GET.**~~ **Fixed 2026-10-08:** `tailor` and `mark_applied` are
+   `@require_POST` (GET → 405).
 4. **`CanonicalJob.last_seen` is not bumped on a re-sighting** (`get_or_create` doesn't
    save the existing row), and **`JobPosting.status` is never set** (always `unknown`).
    Both are needed before "never closes" detection can work.
@@ -361,8 +364,8 @@ were run. Do these first.
 
 1. Re-verify locally: `pytest`, `seed_resume`, `render_resume_pdf`, then one real URL
    through the Dashboard.
-2. Fix gaps 1–3 (auth, Playwright pin, POST-only `mark_applied`); then `docker build` and
-   smoke-run the container.
+2. ~~Fix gaps 1–3~~ (done 2026-10-08). Still to do: `docker build` and smoke-run the
+   container (first attempt failed: host out of disk space).
 3. Swap the Tailwind Play CDN for a built asset and vendor HTMX into `static/`; require
    `SECRET_KEY` when `DEBUG=False`.
 4. Deploy to Cloud Run (secrets via Secret Manager / env).

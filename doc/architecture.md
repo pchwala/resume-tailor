@@ -76,6 +76,12 @@ AI starts from. Every child model has an `order` field.
 5. `tailor_resume(profile, posting)`. A `TailoringError` becomes an inline error.
 6. Create a `TailoredResume` and return the `_tailor_result.html` partial.
 
+`tailor` and `mark_applied` accept only POST (`@require_POST`); a GET returns 405.
+
+**Auth.** `LoginRequiredMiddleware` protects every view, including PDF download. Logged-out
+visitors are redirected to the admin login page (`LOGIN_URL = "admin:login"`); log in as
+the superuser. The nav has a Log out button that POSTs to `admin:logout`.
+
 Other routes (`tracker/urls.py`):
 
 | Route | View | Notes |
@@ -196,21 +202,24 @@ token through `hx-headers` on `<body>`.
 
 ## Testing
 
-- `pytest` with `pytest-django`. Tests run against the **Neon** test DB with `--reuse-db`.
+- `pytest` with `pytest-django`. View tests use the `admin_client` fixture (a logged-in
+  superuser); `client` is used to check that logged-out requests are redirected. Tests run against the **Neon** test DB with `--reuse-db`.
   After any model change, run `pytest --create-db` once.
 - Tests never call OpenAI or the network. Monkeypatch `tailoring.ai._complete`,
   `tracker.views.scrape` and `tracker.views.tailor_resume`.
-- `tests/test_pdf.py` covers template rendering and the scaling math. Actually producing
-  PDF bytes requires Chromium.
+- `tests/test_pdf.py` covers template rendering and the scaling math. The two tests that
+  produce real PDF bytes are skipped unless Chromium can launch (it needs
+  `playwright install chromium` plus the system libraries from `playwright install-deps`).
 
 ## Deployment
 
-The `Dockerfile` builds on `mcr.microsoft.com/playwright/python:v1.44.0-jammy`, which has
+The `Dockerfile` builds on `mcr.microsoft.com/playwright/python:v1.63.0-noble`, which has
 Chromium preinstalled for both scraping and PDFs. On start the container runs `migrate`,
 then `collectstatic`, then `gunicorn config.wsgi` on `$PORT` (8080). It is meant to run on
 Cloud Run with `DATABASE_URL`, `SECRET_KEY` and `OPENAI_API_KEY` supplied as env vars or
 from Secret Manager.
 
-**Before deploying, read the "Known gaps" section of the active plan.** In particular, the
-UI currently has **no authentication**, and the `playwright` package version is not pinned
-to match the base image.
+The image tag must match the `playwright==` pin in `requirements.txt`. If they differ, the
+package looks for a Chromium build the image doesn't have. Bump both together.
+
+Before deploying, read the "Known gaps" section of the active plan.

@@ -12,6 +12,7 @@ from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from profiles.models import Profile
 from tailoring.ai import MODEL, TailoringError, tailor as tailor_resume
@@ -53,6 +54,7 @@ def _error(request, message: str, status: int = 200) -> HttpResponse:
     return render(request, "tracker/_tailor_result.html", {"error": message}, status=status)
 
 
+@require_POST
 def tailor(request):
     """Scrape → dedup → tailor → persist, returning an HTMX result partial."""
     url = (request.POST.get("url") or "").strip()
@@ -106,6 +108,7 @@ def tailor(request):
     )
 
 
+@require_POST
 def mark_applied(request, pk):
     """Create (idempotently) an Application for a tailored resume's posting."""
     tr = get_object_or_404(TailoredResume, pk=pk)

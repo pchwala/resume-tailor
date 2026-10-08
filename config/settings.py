@@ -43,11 +43,16 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Site-wide login: every view requires an authenticated user (admin views are exempt).
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
+
+# Single-user app: log in with the superuser via the admin login page (handles ?next=).
+LOGIN_URL = "admin:login"
 
 TEMPLATES = [
     {

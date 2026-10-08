@@ -11,7 +11,7 @@ Paste a job URL. The app scrapes the posting, tailors your master resume to it w
 
 ## Stack
 
-- **Django 5 + HTMX + Tailwind**, server-rendered, with the Django admin as a back office.
+- **Django 5.1+ + HTMX + Tailwind**, server-rendered, with the Django admin as a back office.
 - **PostgreSQL on Neon**, using the pooled endpoint via `DATABASE_URL`.
 - **Playwright (headless Chromium)** for both scraping and PDF rendering.
 - **OpenAI `gpt-4.1`** with Structured Outputs, validated with pydantic.
@@ -25,7 +25,7 @@ no SQLite fallback.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium
+playwright install chromium         # plus `playwright install-deps` (sudo) if Chromium won't launch
 
 cp .env.example .env        # set DATABASE_URL, OPENAI_API_KEY, SECRET_KEY
 
@@ -35,7 +35,8 @@ python manage.py createsuperuser      # for /admin/
 python manage.py runserver
 ```
 
-Then open http://localhost:8000. The app has three tabs:
+Then open http://localhost:8000 and log in with the superuser (every page requires login).
+The app has three tabs:
 - **Dashboard:** paste a URL to tailor.
 - **Applied / History:** your applications.
 - **Tailored:** all tailored resumes, with PDF download and mark-as-applied.
@@ -90,5 +91,5 @@ dev/               plans and handoffs (date_name.md)
 
 ## Status
 
-v1 is feature-complete. **It is not yet ready for public deployment**, because the UI has
-no authentication. The active plan lists the known gaps and what to do next.
+v1 is feature-complete and every page requires login. It has not been deployed yet. The
+active plan lists the remaining gaps and what to do next.

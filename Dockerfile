@@ -1,6 +1,7 @@
 # Playwright base image ships Chromium preinstalled — reused for both scraping and
-# PDF rendering, so no extra system deps are needed.
-FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+# PDF rendering, so no extra system deps are needed. The tag MUST match the `playwright==`
+# pin in requirements.txt, or the package won't find the preinstalled Chromium.
+FROM mcr.microsoft.com/playwright/python:v1.63.0-noble
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

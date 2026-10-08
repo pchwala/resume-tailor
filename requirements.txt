@@ -1,10 +1,11 @@
 # Resume Tailor — runtime + dev dependencies
 # See dev/25_06_minimal_req.md for the architecture these support.
 
-Django>=5.0,<6.0
+Django>=5.1,<6.0            # 5.1+: LoginRequiredMiddleware
 psycopg[binary]>=3.1          # PostgreSQL (Neon) driver
 django-environ>=0.11          # env-driven settings + DATABASE_URL parsing
-playwright>=1.44              # headless Chromium: scraping + PDF rendering
+playwright==1.63.0            # headless Chromium: scraping + PDF rendering.
+                              # MUST match the Dockerfile base-image tag (v1.63.0-noble).
 beautifulsoup4>=4.12          # HTML parsing for scrape extraction (stdlib html.parser)
 openai>=1.30                  # AI tailoring (gpt-4.1)
 pydantic>=2.7                 # validate the tailored-resume JSON contract
