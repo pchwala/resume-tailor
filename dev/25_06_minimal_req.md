@@ -366,8 +366,10 @@ were run. Do these first.
 
 1. Re-verify locally: `pytest`, `seed_resume`, `render_resume_pdf`, then one real URL
    through the Dashboard.
-2. ~~Fix gaps 1–3~~ (done 2026-10-08). Still to do: `docker build` and smoke-run the
-   container (first attempt failed: host out of disk space).
+2. ~~Fix gaps 1–3~~ (done 2026-10-08). ~~`docker build` + container smoke run~~ —
+   **dropped 2026-11-02:** verification is local-only (see CLAUDE.md "Verification policy").
+   Local re-verify done 2026-11-02: 55 tests pass, no pending migrations, master + tailored
+   PDFs render at 2 pages.
 3. Swap the Tailwind Play CDN for a built asset and vendor HTMX into `static/`. (~~require
    `SECRET_KEY` when `DEBUG=False`~~ done 2026-10-08.)
 4. Deploy to Cloud Run (secrets via Secret Manager / env).

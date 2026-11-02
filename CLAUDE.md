@@ -76,6 +76,14 @@ straight from `Profile`. Design lives in the template, content in the data — n
   patches take effect).
 - Docker: `docker build -t resume-tailor .` then run with env vars / `--env-file .env`.
 
+## Verification policy
+
+- Verify with **local checks only**: `pytest`, `manage.py check`, `makemigrations --check`,
+  and `render_resume_pdf` when PDF/template code changed.
+- **Do not run a Docker build or container smoke test** as part of verification (decided
+  2026-11-02). The `Dockerfile` stays for deployment, but building/running it is not a step
+  in our workflow unless the user explicitly asks.
+
 Settings are env-driven (`django-environ`): `SECRET_KEY`, `DEBUG`, `DATABASE_URL` (Neon
 pooled; **required, no SQLite fallback** — fails fast if unset), `OPENAI_API_KEY`,
 `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`. Cloud Run: `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`
